@@ -1,0 +1,80 @@
+
+From 712d3a86c5cbcc4d93cf96dcb804de913469051c Mon Sep 17 00:00:00 2001
+From: Brent O'Connor <epicserve@gmail.com>
+Date: Sat, 24 Sep 2022 10:45:43 -0500
+Subject: [PATCH] Optimize slug duplication migration
+
+---
+ .../migrations/0005_unique_category_slug.py   |  9 ++++---
+ categories/tests/test_migrations.py           | 24 +++++++++----------
+ 2 files changed, 18 insertions(+), 15 deletions(-)
+
+diff --git a/categories/migrations/0005_unique_category_slug.py b/categories/migrations/0005_unique_category_slug.py
+index 05f019e..bc56a6d 100644
+--- a/categories/migrations/0005_unique_category_slug.py
++++ b/categories/migrations/0005_unique_category_slug.py
+@@ -2,10 +2,12 @@
+ 
+ from django.db import migrations, models
+ 
++from categories.models import Category
++
+ 
+ def make_slugs_unique(apps, schema_editor):
+-    Category = apps.get_model("categories", "Category")
+     duplicates = Category.tree.values("slug").annotate(slug_count=models.Count("slug")).filter(slug_count__gt=1)
++    category_objs = []
+     for duplicate in duplicates:
+         slug = duplicate["slug"]
+         categories = Category.tree.filter(slug=slug)
+@@ -13,9 +15,10 @@ def make_slugs_unique(apps, schema_editor):
+         i = 0
+         for category in categories.all():
+             if i != 0:
+-                category.slug = "%s_%s" % (slug, str(i).zfill(len(str(count))))
+-                category.save()
++                category.slug = "{}-{}".format(slug, str(i).zfill(len(str(count))))
++                category_objs.append(category)
+             i += 1
++    Category.objects.bulk_update(category_objs, ['slug'])
+ 
+ 
+ class Migration(migrations.Migration):
+diff --git a/categories/tests/test_migrations.py b/categories/tests/test_migrations.py
+index 4c506f0..4866b20 100644
+--- a/categories/tests/test_migrations.py
++++ b/categories/tests/test_migrations.py
+@@ -25,19 +25,19 @@ if sys.version_info >= (3, 0):
+                 list(Category.tree.values_list("slug", flat=True)),
+                 [
+                     "foo",
+-                    "foo_1",
+-                    "foo_2",
++                    "foo-1",
++                    "foo-2",
+                     "bar",
+-                    "bar_01",
+-                    "bar_02",
+-                    "bar_03",
+-                    "bar_04",
+-                    "bar_05",
+-                    "bar_06",
+-                    "bar_07",
+-                    "bar_08",
+-                    "bar_09",
+-                    "bar_10",
++                    "bar-01",
++                    "bar-02",
++                    "bar-03",
++                    "bar-04",
++                    "bar-05",
++                    "bar-06",
++                    "bar-07",
++                    "bar-08",
++                    "bar-09",
++                    "bar-10",
+                     "baz",
+                 ],
+             )
+-- 
+2.36.1
