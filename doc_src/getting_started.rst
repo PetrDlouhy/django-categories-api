@@ -15,7 +15,7 @@ If you have installed Django REST framework, all you have to do is add categorie
 .. code-block:: python
 
    from rest_framework.routers import DefaultRouter
-   from categories.api.urls import router as category_router
+   from categories_api.urls import router as category_router
 
    router = DefaultRouter()
    router.registry.extend(category_router.registry)
@@ -28,7 +28,7 @@ If you want to modify the API, you can register your own overriden viewset:
 
 .. code-block:: python
 
-    from categories.api.viewsets import CategoryViewSet
+    from categories_api.viewsets import CategoryViewSet
 
 
     class LimitedCategoryViewSet(CategoryViewSet):
