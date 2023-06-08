@@ -12,6 +12,8 @@ User = get_user_model()
 
 
 class MeViewTests(APITestCase):
+    maxDiff = None
+
     def setUp(self):
         self.user = User.objects.create_superuser("test-user", "foo@bar.baz", "test-password")
         self.client.force_authenticate(user=self.user)

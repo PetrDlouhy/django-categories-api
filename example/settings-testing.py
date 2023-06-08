@@ -116,6 +116,7 @@ CATEGORIES_SETTINGS = {
             {"name": "more_categories", "related_name": "more_cats"},
         ),
     },
+    "COUNTABLE_FIELD_RELATED_NAMES": ('flatpage', 'other_cats', 'more_cats', 'simpletext', 'simpletext_sec_cat'),
 }
 
 TEST_RUNNER = "django.test.runner.DiscoverRunner"

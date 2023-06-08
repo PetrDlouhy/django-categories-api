@@ -10,3 +10,16 @@ This application provides basic ``django-rest-framework`` API for Django Categor
 ## Features of the project
 
 The output contains category tree with counts of category items in each node (cummulative as well as direct counts).
+
+
+## Countable fields
+
+The API can contain number of related objects associatet with category.
+This can be achieved by setting ``COUNTABLE_FIELD_RELATED_NAMES`` property in ``CATEGORIES_SETTINGS``:
+
+```python
+  CATEGORIES_SETTINGS = {
+      "COUNTABLE_FIELD_RELATED_NAMES": ('field_name'),
+  }
+```
+

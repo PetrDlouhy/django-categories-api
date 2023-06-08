@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.conf import settings
 from rest_framework import mixins, permissions, serializers, viewsets
 
 from categories.models import Category
@@ -31,12 +32,15 @@ class CategorySerializer(serializers.ModelSerializer):
         return CategorySerializer(children, many=True).data
 
 
+if hasattr(settings, "CATEGORIES_SETTINGS"):
+    countable_field_names = getattr(settings, "CATEGORIES_SETTINGS").get("COUNTABLE_FIELD_RELATED_NAMES", [])
+else:
+    countable_field_names = []
 countable_fields = [
     f
     for f in Category._meta.get_fields()
-    if f.is_relation and f.name not in ["parent", "children", "categoryrelation"]
+    if f.is_relation and f.name not in ["parent", "children", "categoryrelation"] and f.name in countable_field_names
 ]
-
 
 for field in countable_fields:
     CategorySerializer._declared_fields[f"{field.name}_count"] = serializers.SerializerMethodField()
@@ -80,8 +84,8 @@ def get_category_queryset(queryset=None, extra_filters=None, exclude_blank=False
             cumulative=True,
         )
 
-    if exclude_blank:
-        queryset = queryset.filter(asset_count_cumulative__gt=0)
+        if exclude_blank:
+            queryset = queryset.filter(**{f"{field.name}_count_cumulative__gt": 0})
     return queryset
 
 
