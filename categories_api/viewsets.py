@@ -7,8 +7,6 @@ from categories.models import Category
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    children = serializers.SerializerMethodField(method_name="_get_children")
-
     class Meta:
         model = Category
         fields = [
@@ -24,12 +22,21 @@ class CategorySerializer(serializers.ModelSerializer):
             "description",
             "meta_keywords",
             "meta_extra",
+        ]
+
+
+class TreeCategorySerializer(CategorySerializer):
+    children = serializers.SerializerMethodField(method_name="_get_children")
+
+    class Meta(CategorySerializer.Meta):
+        fields = CategorySerializer.Meta.fields + [
             "children",
         ]
+        model = Category
 
     def _get_children(self, obj):
         children = obj.get_children()
-        return CategorySerializer(children, many=True).data
+        return TreeCategorySerializer(children, many=True).data
 
 
 if hasattr(settings, "CATEGORIES_SETTINGS"):
@@ -42,22 +49,23 @@ countable_fields = [
     if f.is_relation and f.name not in ["parent", "children", "categoryrelation"] and f.name in countable_field_names
 ]
 
-for field in countable_fields:
-    CategorySerializer._declared_fields[f"{field.name}_count"] = serializers.SerializerMethodField()
+for serializer in [CategorySerializer, TreeCategorySerializer]:
+    for field in countable_fields:
+        serializer._declared_fields[f"{field.name}_count"] = serializers.SerializerMethodField()
 
-    def field_count(self, obj, field=field):
-        return getattr(obj, f"{field.name}_count", "-")
+        def field_count(self, obj, field=field):
+            return getattr(obj, f"{field.name}_count", "-")
 
-    setattr(CategorySerializer, f"get_{field.name}_count", field_count)
-    CategorySerializer.Meta.fields += [f"{field.name}_count"]
+        setattr(serializer, f"get_{field.name}_count", field_count)
+        serializer.Meta.fields += [f"{field.name}_count"]
 
-    CategorySerializer._declared_fields[f"{field.name}_count_cumulative"] = serializers.SerializerMethodField()
+        serializer._declared_fields[f"{field.name}_count_cumulative"] = serializers.SerializerMethodField()
 
-    def field_count_cumulative(self, obj, field=field):
-        return getattr(obj, f"{field.name}_count_cumulative", "-")
+        def field_count_cumulative(self, obj, field=field):
+            return getattr(obj, f"{field.name}_count_cumulative", "-")
 
-    setattr(CategorySerializer, f"get_{field.name}_count_cumulative", field_count_cumulative)
-    CategorySerializer.Meta.fields += [f"{field.name}_count_cumulative"]
+        setattr(serializer, f"get_{field.name}_count_cumulative", field_count_cumulative)
+        serializer.Meta.fields += [f"{field.name}_count_cumulative"]
 
 
 class CategoryList(list):  # To overcome problem with filters that require model in queryset
@@ -89,10 +97,12 @@ def get_category_queryset(queryset=None, extra_filters=None, exclude_blank=False
     return queryset
 
 
-class CategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class CategoryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Category.tree.filter(active=True)
-    serializer_class = CategorySerializer
+    serializer_class = TreeCategorySerializer
+    detail_serializer_class = CategorySerializer
     extra_count_filters = {}
+    lookup_field = "slug"
 
     def get_queryset(self, queryset=None):
         if not queryset:
@@ -100,11 +110,21 @@ class CategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
         queryset = get_category_queryset(queryset, extra_filters=self.extra_count_filters)
 
-        queryset = CategoryList(queryset.get_cached_trees())
+        if self.action == "list":
+            queryset = CategoryList(queryset.get_cached_trees())
         return queryset
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return self.serializer_class
+        return self.detail_serializer_class
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
     @method_decorator(cache_page(60 * 60))
     def list(self, *args, **kwargs):
         return super().list(*args, **kwargs)
+
+    @method_decorator(cache_page(60 * 60))
+    def retrieve(self, *args, **kwargs):
+        return super().retrieve(*args, **kwargs)
