@@ -2,8 +2,17 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.conf import settings
 from rest_framework import mixins, permissions, serializers, viewsets
+import random
 
 from categories.models import Category
+
+
+def staggered_cache_page(timeout, staggering=600):
+    # Introduce a variation to prevent all users hitting the cache miss at once
+    variation = random.randint(0, staggering)
+    adjusted_timeout = timeout + variation
+
+    return cache_page(adjusted_timeout)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -121,10 +130,10 @@ class CategoryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
-    @method_decorator(cache_page(60 * 60))
+    @method_decorator(staggered_cache_page(60 * 60))
     def list(self, *args, **kwargs):
         return super().list(*args, **kwargs)
 
-    @method_decorator(cache_page(60 * 60))
+    @method_decorator(staggered_cache_page(60 * 60))
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
