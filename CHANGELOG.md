@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 (2023-10-05)
+
+- introduce staggered cacing to prevent all users hitting the cache miss at once
+
 ## 0.1.0 (2023-08-24)
 
 - add detail endpoint
