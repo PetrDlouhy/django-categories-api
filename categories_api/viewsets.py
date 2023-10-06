@@ -7,14 +7,6 @@ import random
 from categories.models import Category
 
 
-def staggered_cache_page(timeout, staggering=600):
-    # Introduce a variation to prevent all users hitting the cache miss at once
-    variation = random.randint(0, staggering)
-    adjusted_timeout = timeout + variation
-
-    return cache_page(adjusted_timeout)
-
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -48,10 +40,29 @@ class TreeCategorySerializer(CategorySerializer):
         return TreeCategorySerializer(children, many=True).data
 
 
+CACHE_TIMEOUT = 60 * 60
+CACHE_STAGGERING = 60 * 10
+
+
 if hasattr(settings, "CATEGORIES_SETTINGS"):
-    countable_field_names = getattr(settings, "CATEGORIES_SETTINGS").get("COUNTABLE_FIELD_RELATED_NAMES", [])
+    categories_settings = getattr(settings, "CATEGORIES_SETTINGS")
+    countable_field_names = categories_settings.get("COUNTABLE_FIELD_RELATED_NAMES", [])
+    if hasattr(categories_settings, "CACHE_TIMEOUT"):
+        CACHE_TIMEOUT = settings["CATEGORIES_SETTINGS"]["CACHE_TIMEOUT"]
+    if hasattr(categories_settings, "CACHE_STAGGERING"):
+        CACHE_STAGGERING = settings["CATEGORIES_SETTINGS"]["CACHE_STAGGERING"]
 else:
     countable_field_names = []
+
+
+def staggered_cache_page(timeout, staggering=CACHE_STAGGERING):
+    # Introduce a variation to prevent all users hitting the cache miss at once
+    variation = random.randint(0, staggering)
+    adjusted_timeout = timeout + variation
+
+    return cache_page(adjusted_timeout)
+
+
 countable_fields = [
     f
     for f in Category._meta.get_fields()
@@ -130,10 +141,10 @@ class CategoryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
-    @method_decorator(staggered_cache_page(60 * 60))
+    @method_decorator(staggered_cache_page(CACHE_TIMEOUT))
     def list(self, *args, **kwargs):
         return super().list(*args, **kwargs)
 
-    @method_decorator(staggered_cache_page(60 * 60))
+    @method_decorator(staggered_cache_page(CACHE_TIMEOUT))
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)

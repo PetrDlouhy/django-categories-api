@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2023-10-06)
+
+- allow the cache timeout and staggering to be changed in settings
+
+
 ## 0.2.0 (2023-10-05)
 
 - introduce staggered cacing to prevent all users hitting the cache miss at once
