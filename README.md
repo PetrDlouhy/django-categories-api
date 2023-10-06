@@ -23,3 +23,13 @@ This can be achieved by setting ``COUNTABLE_FIELD_RELATED_NAMES`` property in ``
   }
 ```
 
+## Settings
+
+The cache timeout and staggering can be changed by:
+
+```python
+  CATEGORIES_SETTINGS = {
+      "CACHE_TIMEOUT": 60 * 60,
+      "CACHE_STAGGERING": 60 * 10,
+  }
+```
