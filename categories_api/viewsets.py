@@ -47,10 +47,10 @@ CACHE_STAGGERING = 60 * 10
 if hasattr(settings, "CATEGORIES_SETTINGS"):
     categories_settings = getattr(settings, "CATEGORIES_SETTINGS")
     countable_field_names = categories_settings.get("COUNTABLE_FIELD_RELATED_NAMES", [])
-    if hasattr(categories_settings, "CACHE_TIMEOUT"):
-        CACHE_TIMEOUT = settings["CATEGORIES_SETTINGS"]["CACHE_TIMEOUT"]
-    if hasattr(categories_settings, "CACHE_STAGGERING"):
-        CACHE_STAGGERING = settings["CATEGORIES_SETTINGS"]["CACHE_STAGGERING"]
+    if "CACHE_TIMEOUT" in categories_settings:
+        CACHE_TIMEOUT = categories_settings["CACHE_TIMEOUT"]
+    if "CACHE_STAGGERING" in categories_settings:
+        CACHE_STAGGERING = categories_settings["CACHE_STAGGERING"]
 else:
     countable_field_names = []
 

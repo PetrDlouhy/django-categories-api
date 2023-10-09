@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2023-10-09)
+
+- fix cache settings
+
 ## 0.2.1 (2023-10-06)
 
 - allow the cache timeout and staggering to be changed in settings
